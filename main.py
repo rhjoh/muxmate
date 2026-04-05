@@ -1,4 +1,6 @@
 from config import load_config
+import os
+import subprocess
 from simple_term_menu import TerminalMenu
 from agent import run_repl, run_prompt
 from adapter import (
@@ -28,10 +30,27 @@ tools: list = [
 ]
 
 
+def get_tmux_pane(scrollback: int) -> str:
+    pane_id = os.environ.get("TMUX_PANE")
+    if pane_id:
+        full_pane_history = subprocess.run(
+            f"tmux capture-pane -p -J -S -{scrollback} -t {pane_id}",
+            capture_output=True,
+            shell=True,
+            text=True,
+        )
+        return str(full_pane_history)
+    else:
+        raise RuntimeError("Not running inside a tmux pane")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--auth", help="Setup API providers.", action="store_true")
     parser.add_argument("--repl", help="Start in REPL mode.", action="store_true")
+    parser.add_argument(
+        "--scroll", help="Lines of scrollback buffer to use.", type=int, default=200
+    )
     parser.add_argument("prompt", nargs="?")
     # Note that this does allow "mm --repl 'list files'"
     # Add --yolo
@@ -51,6 +70,10 @@ def main() -> None:
         raise ValueError(f"Unsupported provider type: {config.provider_type}")
 
     messages: list[UserMessage | AssistantMessage] = []
+    terminal_history: str = ""
+
+    if args.scroll and os.environ.get("TMUX_PANE"):
+        terminal_history = get_tmux_pane(args.scroll)
 
     if args.auth:
         options = ["OpenAI", "Claude", "Kimi", "Zhipu", "Alibaba Coding"]
@@ -61,9 +84,10 @@ def main() -> None:
         if not isinstance(menu_entry_index, int):
             raise RuntimeError("Expected a single menu selection")
         selected_provider_key = input(f"Enter {options[menu_entry_index]} API key:\n")
+        # This will eventually be saved to a user config.json or similar
 
     if args.repl:
-        run_repl(messages, provider, config, tools)
+        run_repl(messages, provider, config, tools, terminal_history)
 
     if args.prompt:
         run_prompt(
@@ -72,6 +96,7 @@ def main() -> None:
             provider=provider,
             config=config,
             tools=tools,
+            terminal_history=terminal_history,
         )
 
 

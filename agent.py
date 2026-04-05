@@ -25,7 +25,7 @@ def run_bash_command(bash_command: str, config) -> dict:
     }
 
 
-def run_repl(messages: list, provider, config, tools: list):
+def run_repl(messages: list, provider, config, tools: list, terminal_history: str):
     print("REPL Mode. Send 'q' to quit.")
     while True:
         user_input = input("User: ")
@@ -37,19 +37,26 @@ def run_repl(messages: list, provider, config, tools: list):
             provider=provider,
             config=config,
             tools=tools,
+            terminal_history=terminal_history,
+        )
+        terminal_history = (
+            ""  # Clear terminal_history so we're not sending it on every repl turn.
         )
         for block in response.content:
             if isinstance(block, TextBlock):
                 print(f"Agent: {block.text}")
 
 
-def run_prompt(messages: list, user_prompt, provider, config, tools: list):
+def run_prompt(
+    messages: list, user_prompt, provider, config, tools: list, terminal_history: str
+):
     response = run_agent_turn(
         messages=messages,
         user_prompt=user_prompt,
         provider=provider,
         config=config,
         tools=tools,
+        terminal_history=terminal_history,
     )
     for block in response.content:
         if isinstance(block, TextBlock):
@@ -62,9 +69,16 @@ def run_agent_turn(
     provider,
     config,
     tools: list,
+    terminal_history: str,
 ):
+    full_prompt = (
+        "<Tmux scrollback history>"
+        + terminal_history
+        + "</Tmux scrollback history>"
+        + user_prompt
+    )
     user_message = UserMessage(
-        role="user", content=[TextBlock(text=user_prompt)]
+        role="user", content=[TextBlock(text=full_prompt)]
     )  # type="text" is automatic here.
     messages.append(user_message)
 
