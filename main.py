@@ -2,7 +2,7 @@ from config import load_config
 import os
 import subprocess
 from simple_term_menu import TerminalMenu
-from agent import run_repl, run_prompt
+from agent import run_repl, run_agent_turn
 from adapter import (
     AnthropicProvider,
     OpenAIProvider,
@@ -90,7 +90,7 @@ def main() -> None:
         run_repl(messages, provider, config, tools, terminal_history)
 
     if args.prompt:
-        run_prompt(
+        run_agent_turn(
             messages=messages,
             user_prompt=args.prompt,
             provider=provider,

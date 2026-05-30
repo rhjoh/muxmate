@@ -47,22 +47,6 @@ def run_repl(messages: list, provider, config, tools: list, terminal_history: st
                 print(f"Agent: {block.text}")
 
 
-def run_prompt(
-    messages: list, user_prompt, provider, config, tools: list, terminal_history: str
-):
-    response = run_agent_turn(
-        messages=messages,
-        user_prompt=user_prompt,
-        provider=provider,
-        config=config,
-        tools=tools,
-        terminal_history=terminal_history,
-    )
-    for block in response.content:
-        if isinstance(block, TextBlock):
-            print(block.text)
-
-
 def run_agent_turn(
     messages: list[UserMessage | AssistantMessage],
     user_prompt: str,
@@ -90,6 +74,9 @@ def run_agent_turn(
             tools=tools,
         )
         messages.append(response)
+        for block in response.content:
+            if isinstance(block, TextBlock):
+                print(block.text)
 
         tool_blocks = [
             tool for tool in response.content if isinstance(tool, ToolUseBlock)
